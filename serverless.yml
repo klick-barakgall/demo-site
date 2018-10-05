@@ -1,0 +1,201 @@
+service: demo-site
+
+frameworkVersion: ">=1.9.0 <2.0.0"
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  stackname: ${self:service}-${self:custom.stage}
+  domains:
+    dev: ${self:custom.stage}--${self:service}.klickstuff.com
+    rc: rc1--${self:service}.klickstuff.com
+    prod: demo.com
+  domain: ${self:custom.domains.${self:custom.stage}, self:custom.domains.dev}
+  siteURL: { Fn::Join: ["", ["https://", "${self:custom.domain}"]]}
+  stages:
+    prod: prod
+    rc: rc
+    dev: dev
+  stageFlag: ${self:custom.stages.${self:custom.stage}, "dev"}
+  output:
+    format: toml
+    file: .env
+  scriptHooks:
+    after:deploy:deploy:
+      - yarn build
+      - sh ./scripts/deploy_static_files.sh ${self:custom.stackname}
+    before:remove:remove:
+      - sh ./scripts/remove_static_files.sh ${self:custom.stackname}
+  Tags:
+    - Key: SERVICE
+      Value: ${self:service}
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: nodejs8.10
+  stackTags:
+    STAGE: ${self:custom.stage}
+    SERVICE: ${self:service}
+
+    
+functions:
+  getImages:
+    handler: functions/getImages/index.handler
+    memorySize: 128
+    timeout: 5
+    events:
+      - http:
+          path: images
+          method: get
+          cors: true
+    package:
+      include:
+        - functions/getImages/**/*
+
+resources:
+  Description: Demo Site
+  Conditions:
+    isProd: {"Fn::Equals" : ["${self:custom.stageFlag}", "prod"]}
+    isRC: {"Fn::Equals" : ["${self:custom.stageFlag}", "rc"]}
+    isDev: {"Fn::Equals" : ["${self:custom.stageFlag}", "dev"]}
+    isProdOrRC: {"Fn::Or": [{"Condition": "isProd"}, {"Condition": "isRC" }]}
+  Resources:
+    ProxyEntry:
+      Type: 'Custom::MarketingStackProxyEntry'
+      Condition: isDev
+      Version: '1.0'
+      Properties:
+        ServiceToken:
+          Fn::ImportValue:
+            Fn::Sub: "demo-stack-entry-cfn-dev-arn"
+        Host:  ${self:custom.domain}
+        Origin: {"Fn::GetAtt": [WebsiteBucket, DomainName]}
+    WebsiteBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        AccessControl: Private
+        # AccelerateConfiguration:
+        NotificationConfiguration:
+          LambdaConfigurations:
+            Event: s3:ObjectCreated:*
+            Function: {"Fn::GetAtt": [GetImagesLambdaFunction, Arn]}
+    BucketPolicy:
+      Type: "AWS::S3::BucketPolicy"
+      Properties:
+        Bucket: {Ref: WebsiteBucket}
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            Effect: Allow
+            Principal:
+              Fn::If:
+                - isProdOrRC
+                - CanonicalUser:
+                  - {"Fn::GetAtt": [CloudfrontOAI, S3CanonicalUserId]}
+                - CanonicalUser:
+                  - {"Fn::ImportValue": "demo-stack-proxy-dev-S3CanonicalUserId"}
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+            Resource:
+              - {"Fn::Join": ["", ["arn:aws:s3:::", {Ref: WebsiteBucket}]]}
+              - {"Fn::Join": ["", ["arn:aws:s3:::", {Ref: WebsiteBucket}, "/*"]]}
+    CloudfrontOAI:
+      Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+      Condition: isProdOrRC
+      Properties:
+        CloudFrontOriginAccessIdentityConfig:
+          Comment: Created for ${self:custom.stackname}
+    CDN:
+      Type: "AWS::CloudFront::Distribution"
+      Condition: isProdOrRC
+      Properties:
+        DistributionConfig:
+          WebACLId: 
+            Fn::If:
+              - isProd
+              - {Ref: AWS::NoValue}
+              - {Fn::ImportValue: "sandbox-wafacl-prod"}
+          Aliases:
+            - ${self:custom.domain}
+          Enabled: true
+          HttpVersion: http2
+          PriceClass: PriceClass_All
+          IPV6Enabled: true
+          DefaultRootObject: index.html
+          CustomErrorResponses:
+            - ErrorCode: 404
+              ResponseCode: 404
+              ResponsePagePath: /error.html
+          Origins:
+            - DomainName: {"Fn::GetAtt": [WebsiteBucket, DomainName]}
+              Id: s3-origin
+              S3OriginConfig:
+                OriginAccessIdentity: {"Fn::Join": ["", ["origin-access-identity/cloudfront/", {Ref: CloudfrontOAI}]]}
+          DefaultCacheBehavior:
+            AllowedMethods:
+              - GET
+              - HEAD
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+            DefaultTTL: 3600
+            MaxTTL: 86400
+            MinTTL: 0
+            # PathPattern: String
+            # SmoothStreaming: Boolean
+            TargetOriginId: s3-origin
+            # TrustedSigners:
+            #   - String
+            ViewerProtocolPolicy: redirect-to-https
+        Tags: ${self:custom.Tags}
+    DnsRecords:
+      Condition: isProdOrRC
+      Type: "AWS::Route53::RecordSetGroup"
+      Properties:
+        HostedZoneName:
+          Fn::If:
+            - isRC
+            - demo.com.
+            - ${self:custom.domain}.
+        Comment: "DNS records associated with ${self:custom.stackname}"
+        RecordSets:
+          - Name: ${self:custom.domain}
+            Type: A
+            AliasTarget:
+              DNSName:  {"Fn::GetAtt": [CDN, DomainName]}
+              HostedZoneId: Z2FDTNDATAQYW2
+
+  Outputs:
+    SiteUrl:
+      Value: ${self:custom.siteURL}
+      Description: URL of the website
+    WebsiteBucket:
+      Value: {Ref: WebsiteBucket}
+      Description: ID of the S3 bucket hosting static files
+    CdnUrl:
+      Condition: isProdOrRC
+      Value: {"Fn::GetAtt": [CDN, DomainName]}
+      Description: URL of the CloudFront distribution
+    DistributionId:
+      Condition: isProdOrRC
+      Value: {Ref: CDN}
+      Description: ID of the CloudFront distribution
+    ReactAppStackname:
+      Value: ${self:custom.stackname}
+      Description: Name of stack/service
+
+plugins:
+  - serverless-stack-output
+  - serverless-print-dots
+  - serverless-scriptable-plugin
+
+package:
+  individually: true
+  exclude:
+    - '**/*'

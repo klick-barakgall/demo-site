@@ -1,0 +1,80 @@
+version: '1.0'
+steps:
+
+  UnitTesting:
+    title: Unit Testing Application
+    image: klickinc/marketing-build-harness:398e066
+    working_directory: ${{main_clone}}
+    commands:
+      - yarn install
+
+  DeployDev:
+    title: Deploy to Dev
+    image: klickinc/marketing-build-harness:398e066
+    working_directory: ${{main_clone}}
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${{SANDBOX_ACCESS_KEY_ID}}
+      - AWS_SECRET_ACCESS_KEY=${{SANDBOX_SECRET_ACCESS_KEY_ID}}
+    commands:
+      - sls deploy -s ${{CF_BRANCH}} -v
+      - >-
+        cf_export SITEURL=$(sls info -s ${{CF_BRANCH}} --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
+    when:
+      branch:
+        only:
+          - dev
+          - /^feat-/i
+
+  DeployRC:
+    title: Deploy to RC
+    image: klickinc/marketing-build-harness:398e066
+    working_directory: ${{main_clone}}
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${{PROD_ACCESS_KEY_ID}}
+      - AWS_SECRET_ACCESS_KEY=${{PROD_SECRET_ACCESS_KEY_ID}}
+    commands:
+      - sls deploy -s ${{CF_BRANCH}} -v
+      - >-
+        cf_export SITEURL=$(sls info -s ${{CF_BRANCH}} --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
+    when:
+      branch:
+        only:
+          - rc
+
+  DeployProd:
+    title: Deploy to Prod
+    image: klickinc/marketing-build-harness:398e066
+    working_directory: ${{main_clone}}
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=${{PROD_ACCESS_KEY_ID}}
+      - AWS_SECRET_ACCESS_KEY=${{PROD_SECRET_ACCESS_KEY_ID}}
+    commands:
+      - sls deploy -s prod -v
+      - >-
+        cf_export SITEURL=$(sls info -s prod --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
+    when:
+      branch:
+        only:
+          - master
+
+  LighthouseTest:
+    title: Test with Lighthouse
+    image: klickinc/lighthouse-ci:latest
+    working_directory: ${{main_clone}}
+    commands:
+      - echo ${{SITEURL}}
+      - lighthouse --chrome-flags="--headless --no-sandbox" ${{SITEURL}} --output json > report.json
+      - LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
+      - echo ${{SITEURL}}
+      - echo "LIGHTHOUSE_SCORE ${LIGHTHOUSE_SCORE}"
+      # - if [ "$LIGHTHOUSE_SCORE" -le "60" ]; then exit 1; else exit 0; fi
+    when:
+      branch:
+        only:
+          - master
+          - rc
+          - dev
+          - /^feat-/i
