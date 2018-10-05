@@ -20,6 +20,8 @@ steps:
       - sls deploy -s ${{CF_BRANCH}} -v
       - >-
         cf_export SITEURL=$(sls info -s ${{CF_BRANCH}} --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
+      - >-
+        cf_export STACKNAME=$(sls info -s ${{CF_BRANCH}} --verbose | grep ReactAppStackname | sed -e 's/.*: \(.*\)/\1/')
     when:
       branch:
         only:
@@ -38,6 +40,8 @@ steps:
       - sls deploy -s ${{CF_BRANCH}} -v
       - >-
         cf_export SITEURL=$(sls info -s ${{CF_BRANCH}} --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
+      - >-
+        cf_export STACKNAME=$(sls info -s ${{CF_BRANCH}} --verbose | grep ReactAppStackname | sed -e 's/.*: \(.*\)/\1/')
     when:
       branch:
         only:
@@ -69,7 +73,9 @@ steps:
     commands:
       - echo ${{SITEURL}}
       - lighthouse --chrome-flags="--headless --no-sandbox" ${{SITEURL}} --output json > report.json
-      - LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
+      # - LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
+      - >-
+        cf_export LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
       - echo ${{SITEURL}}
       - echo "LIGHTHOUSE_SCORE ${LIGHTHOUSE_SCORE}"
       # - if [ "$LIGHTHOUSE_SCORE" -le "60" ]; then exit 1; else exit 0; fi
@@ -91,13 +97,13 @@ steps:
       - SLACK_FALLBACK="Deployed to asdf environment"
       - SLACK_COLOR="good"
       - SLACK_PRETEXT="Added XYZ to ${{CF_BRANCH}}"
-      - SLACK_AUTHOR_NAME="Auto Deploy Robot"
+      - SLACK_AUTHOR_NAME="${{CF_COMMIT_AUTHOR}}"
       - SLACK_AUTHOR_LINK=https://cloudposse.com/wp-content/uploads/sites/29/2018/02/small-cute-robot-square.png
       - SLACK_AUTHOR_ICON=https://cloudposse.com/wp-content/uploads/sites/29/2018/02/small-cute-robot-square.png
       - SLACK_TITLE=${{SITEURL}}
       - SLACK_TITLE_LINK=${{SITEURL}}
       # - SLACK_TEXT="The latest changes have been deployed"
-      - SLACK_THUMB_URL=https://cloudposse.com/wp-content/uploads/sites/29/2018/02/SquareLogo2.png
+      - SLACK_THUMB_URL=https://avatars0.githubusercontent.com/u/43070060?s=200&v=4
       # - SLACK_FOOTER="Helm Deployment"
       # - SLACK_FOOTER_ICON=https://cloudposse.com/wp-content/uploads/sites/29/2018/02/kubernetes.png
       - SLACK_FIELD1_TITLE=Stack
