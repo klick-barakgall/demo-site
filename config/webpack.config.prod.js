@@ -432,7 +432,7 @@ module.exports = {
         minifyCSS: true,
         minifyURLs: true,
       },
-      GIT_HASH: JSON.stringify(gitRevisionPlugin.commithash()),
+      GIT_HASH: JSON.stringify(gitRevisionPlugin.commithash().substring(0,7)),
     }),
     // Inlines the webpack runtime script. This script is too small to warrant
     // a network request.
