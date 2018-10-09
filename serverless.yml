@@ -75,10 +75,6 @@ resources:
       Properties:
         AccessControl: Private
         # AccelerateConfiguration:
-        NotificationConfiguration:
-          LambdaConfigurations:
-            Event: s3:ObjectCreated:*
-            Function: {"Fn::GetAtt": [GetImagesLambdaFunction, Arn]}
     BucketPolicy:
       Type: "AWS::S3::BucketPolicy"
       Properties:
