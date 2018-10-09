@@ -74,6 +74,7 @@ steps:
       - echo ${{SITEURL}}
       - lighthouse --chrome-flags="--headless --no-sandbox" ${{SITEURL}} --output json > report.json
       # - LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
+      - cat report.json
       - >-
         cf_export LIGHTHOUSE_SCORE=$(cat report.json | json score | awk '{print int($1)}')
       - echo ${{SITEURL}}
