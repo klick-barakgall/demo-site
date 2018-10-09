@@ -1,11 +1,31 @@
 import React, { Component } from 'react';
+import axios from 'axios';
 import './App.css';
 
 const STACK_NAME = process.env.ReactAppStackname;
 const SERVICE_ENDPOINT = process.env.ReactAppServiceEndpoint;
 
 class App extends Component {
+
+  state = {
+    images: null
+  }
+
+  componentDidMount() {
+    axios.get(`${SERVICE_ENDPOINT}images`)
+    .then(images => {
+      console.log(images);
+      if (images.length > 0) {
+        this.setState(images);
+      }
+    });
+  }
+
   render() {
+
+    const {images} = this.state;
+    const imagesHTML = images && images.map((image, index) => (<img alt="random" src={image.src} />));
+
     return (
       <div className="App">
         <header className="App-header">
@@ -15,6 +35,7 @@ class App extends Component {
             Service Endpoint: <a href={SERVICE_ENDPOINT}>{SERVICE_ENDPOINT}</a>
           </p>
         </header>
+        {imagesHTML}
       </div>
     );
   }

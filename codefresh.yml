@@ -18,6 +18,7 @@ steps:
       - AWS_SECRET_ACCESS_KEY=${{SANDBOX_SECRET_ACCESS_KEY_ID}}
     commands:
       - sls deploy -s ${{CF_BRANCH}} -v
+      - cat .env
       - >-
         cf_export SITEURL=$(sls info -s ${{CF_BRANCH}} --verbose | grep SiteUrl | sed -e 's/.*: \(.*\)/\1/')
       - >-
