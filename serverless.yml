@@ -16,6 +16,7 @@ custom:
     rc: rc
     dev: dev
   stageFlag: ${self:custom.stages.${self:custom.stage}, "dev"}
+  serviceEndpoint: {"Fn::Join": ["", ["https://", {Ref: "ApiGatewayRestApi"}, ".execute-api.", {Ref: "AWS::Region"}, ".amazonaws.com/", "${self:custom.stage}/"]]}
   output:
     format: toml
     file: .env
@@ -185,6 +186,12 @@ resources:
     ReactAppStackname:
       Value: ${self:custom.stackname}
       Description: Name of stack/service
+    ReactAppServiceEndpoint:
+      Description: Service Endpoint
+      Value: ${self:custom.serviceEndpoint}
+      # Export:
+      #   Name: "${self:custom.stackname}-endpoint"
+    
 
 plugins:
   - serverless-stack-output
