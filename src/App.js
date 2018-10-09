@@ -13,10 +13,10 @@ class App extends Component {
 
   componentDidMount() {
     axios.get(`${SERVICE_ENDPOINT}images`)
-    .then(images => {
-      console.log(images);
-      if (images.length > 0) {
-        this.setState(images);
+    .then(({data}) => {
+      console.log(data);
+      if (data && data.images.length > 0) {
+        this.setState({images: data.images});
       }
     });
   }
@@ -24,7 +24,7 @@ class App extends Component {
   render() {
 
     const {images} = this.state;
-    const imagesHTML = images && images.map((image, index) => (<img alt="random" src={image.src} />));
+    const imagesHTML = images && images.map((image, index) => (<img alt="random" src={image.url} />));
 
     return (
       <div className="App">
