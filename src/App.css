@@ -1,3 +1,12 @@
+
+html, body {
+  background-color: #282c34;
+}
+
+a, a:link {
+  color: rgb(235, 155, 80);
+}
+
 .App {
   text-align: center;
 }
@@ -14,18 +23,26 @@
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
+  margin-top: 100px;
+}
+
+aside {
+}
+aside img {
+  float: left;
+  width: 30%;
+  margin:10px;
 }
 
 .App-content {
   text-align: left;
+  padding: 15px 25px;
 }
 
 .App-link {
