@@ -94,7 +94,7 @@ steps:
       - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
       - SLACK_USER_NAME=CodeFresh
       - "SLACK_ICON_EMOJI=:white_check_mark:"
-      - SLACK_FALLBACK="Deployed to asdf environment"
+      - SLACK_FALLBACK="Deployed ${{STACKNAME}} environment"
       - SLACK_COLOR="good"
       - SLACK_PRETEXT=${{CF_COMMIT_MESSAGE}}
       - SLACK_AUTHOR_NAME=${{CF_COMMIT_AUTHOR}}
