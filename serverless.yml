@@ -108,11 +108,11 @@ resources:
       Condition: isProdOrRC
       Properties:
         DistributionConfig:
-          WebACLId: 
-            Fn::If:
-              - isProd
-              - {Ref: AWS::NoValue}
-              - {Fn::ImportValue: "sandbox-wafacl-prod"}
+          # WebACLId: 
+          #   Fn::If:
+          #     - isProd
+          #     - {Ref: AWS::NoValue}
+          #     - {Fn::ImportValue: "wafacl-prod"}
           Aliases:
             - ${self:custom.domain}
           Enabled: true
