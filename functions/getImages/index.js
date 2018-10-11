@@ -5,7 +5,8 @@ exports.handler = (event, context, callback) => {
     images: [
       {url: '//loremflickr.com/320/240/trees?lock=3'},
       {url: '//loremflickr.com/320/240/trees?lock=4'},
-      {url: '//loremflickr.com/320/240/trees?lock=5'}
+      {url: '//loremflickr.com/320/240/trees?lock=5'},
+      {url: '//loremflickr.com/320/240/trees?lock=6'}
     ]
   };
   const response = {

@@ -29,15 +29,16 @@ a, a:link {
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
-  margin-top: 100px;
+  margin-top: 60px;
 }
 
 aside {
 }
 aside img {
   float: left;
-  width: 30%;
-  margin:10px;
+  width: 25%;
+  padding: 5px;
+  box-sizing: border-box;
 }
 
 .App-content {
