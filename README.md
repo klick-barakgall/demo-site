@@ -22,4 +22,4 @@ Please first deploy those into your environment and then come back here and cont
 
 ## Usage Agreement
 
-All code provided in these examples is given with no warrenty and should be used at your own discresion and risk. Klick assumes no liablity for this code, or any fees/costs associated with it's use. 
+All code provided in these examples is given with no warranty and should be used at your own discretion and risk. Klick assumes no liablity for this code, or any fees/costs associated with it's use. 
